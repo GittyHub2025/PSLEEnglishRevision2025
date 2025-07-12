@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PSLE English Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+
+    <div id="appContainer" class="w-full max-w-md mx-auto">
+        <!-- Name Input Modal -->
+        <div id="nameModal" class="modal">
+            <!-- ... (The rest of your HTML body content remains exactly the same) ... -->
+            <!-- ... from here down to the </canvas> tag ... -->
+        </div>
+
+        <!-- Main Index Screen -->
+        <div id="mainIndexScreen" class="hidden bg-white/80 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-lg">
+           <!-- ... -->
+        </div>
+
+        <!-- Flashcard Screen -->
+        <div id="flashcardScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg">
+            <!-- ... -->
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg text-center">
+            <!-- ... -->
+        </div>
+    </div>
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- We will put our script links at the end of the body -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>
+```*(Note: I've omitted the bulk of the HTML body for brevity, but you should copy your entire existing HTML structure into the new file.)*
+
+#### **Step 3: Create `config.js` and `script.js` Files**
+
+On your computer, create three files in the same folder:
+1.  `index.html` (the file from the previous step)
+2.  `config.js`
+3.  `script.js`
+4.  `style.css` (This will contain the CSS from your old `<style>` block)
+
+**1. `config.js`:**
+Create this new file. Its only purpose is to hold your secret Web App URL.
+
+```javascript
+// Paste the Web App URL you copied from Google Apps Script deployment here
+const WEB_APP_URL = 'https://script.google.com/macros/s/..../exec';
