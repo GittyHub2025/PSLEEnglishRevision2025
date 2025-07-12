@@ -1,0 +1,39 @@
+﻿/* -------------------- */
+/* style.css            */
+/* -------------------- */
+
+
+body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); } 20%, 40%, 60%, 80% { transform: translateX(8px); } }
+.shake { animation: shake 0.5s ease-in-out; }
+.correct-state-static { background-color: #22c55e !important; color: white !important; }
+.correct-state-static #questionText { display: none !important; }
+.correct-state-static #feedbackText, .correct-state-static #feedbackIconContainer { color: white !important; }
+.incorrect-state { background-color: #ef4444 !important; color: white !important; border-color: #b91c1c !important; }
+.incorrect-state #questionText { display: none !important; }
+.incorrect-state #feedbackText, .incorrect-state #feedbackIconContainer { color: white !important; }
+.explanation-container { font-size: 1.1rem; font-weight: 500; line-height: 1.6; color: white; background-color: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 0.5rem; }
+.prompt-guidance { font-size: 0.875rem; display: block; margin-top: 1rem; font-weight: bold; }
+.choice-button, .action-button, .index-card button { transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border-radius: 0.5rem; font-weight: 600; padding: 0.75rem 0.5rem; text-align: center; border: 1px solid transparent; }
+.choice-button:hover:not(:disabled), .action-button:hover, .index-card button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
+.choice-button:active:not(:disabled), .action-button:active, .index-card button:active { transform: translateY(0px); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.choice-button:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.choice-button.forced-disabled-look { opacity: 0.5; }
+.choice-button:disabled:hover { transform: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+.clickable-card { cursor: pointer; }
+#progressBarFill { transition: width 0.3s ease-out; }
+#confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+.modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 0.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.race-track-container { position: relative; width: 100%; height: 30px; margin-top: 20px; margin-bottom: 20px; z-index: 1; }
+.race-track { position: absolute; bottom: 0; left: 0; width: calc(100% - 30px); height: 10px; background-color: #d1d5db; border-radius: 5px; z-index: 2; }
+.race-track-fill { position: absolute; bottom: 0; left: 0; height: 10px; background-color: #3b82f6; border-radius: 5px; width: 0%; z-index: 3; transition: width 1.5s ease-out; }
+.rocket { position: absolute; bottom: -8px; left: 0; font-size: 36px; transform: translateX(-50%); z-index: 10; transition: left 1.5s ease-out; }
+.checkered-flag { position: absolute; bottom: -8px; right: 0; font-size: 24px; transform: translateX(50%); z-index: 10; }
+#questionText { word-break: break-word; hyphens: auto; font-size: 1.5rem; }
+@media (min-width: 768px) { #questionText { font-size: 1.75rem; } }
+.choice-button { white-space: normal; word-break: break-word; line-height: 1.4; min-height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; }
+@media (min-width: 768px) { .choice-button { font-size: 1.25rem; } }
+.index-card { background-color: white; border-radius: 0.75rem; padding: 1rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.07); display: flex; justify-content: space-between; align-items: center; }
+.score-badge { font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 9999px; }
+.score-badge.completed { background-color: #dcfce7; color: #166534; }
