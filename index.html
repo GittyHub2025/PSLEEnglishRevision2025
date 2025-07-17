@@ -304,21 +304,6 @@
         else { persistentHeader.classList.add('hidden'); nameModal.style.display = 'flex'; userNameInput.focus(); }
     }
 
-    // ===================================================================================
-//  MODULE: CORE APPLICATION & GAME LOGIC
-// ===================================================================================
-
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
-    }
-}
-
-function init() {
-    // ... your existing init function
-}
-    
     function saveUserName() {
         const name = userNameInput.value.trim();
         if (!name) { alert('Please enter your name!'); return; }
