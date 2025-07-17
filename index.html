@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PSLE Math: Rate, Speed & Algebra</title>
+    <title>PSLE Math Practice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
@@ -26,7 +26,7 @@
         .choice-button.forced-disabled-look { opacity: 0.5; }
         .choice-button:disabled:hover { transform: none; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .clickable-card { cursor: pointer; }
-        #progressBarFill { transition: width 0.3s ease-out; }
+        #progressBarFill, #screenTimeBarFill { transition: width 0.5s ease-out; }
         #confettiCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 0.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
@@ -46,21 +46,34 @@
 
     <div id="appContainer" class="w-full max-w-md mx-auto">
         <!-- Name Input Modal -->
-         <div id="nameModal" class="modal">
-             <div class="modal-content text-center">
-                 <h2 class="text-xl md:text-2xl font-semibold mb-4 text-blue-700">Welcome, Math Whiz!</h2>
-                 <p class="text-slate-600 mb-4">Enter your name to start your revision.</p>
-                 <input type="text" id="userNameInput" placeholder="Your Name" class="w-full p-2 border border-slate-300 rounded mb-4 focus:ring-blue-500 focus:border-blue-500 text-center text-lg">
-                 <button onclick="saveUserName()" class="action-button bg-blue-500 hover:bg-blue-600 text-white w-full py-3 px-6 text-lg">Start Solving!</button>
-             </div>
-         </div>
+        <div id="nameModal" class="modal">
+            <div class="modal-content text-center">
+                <h2 class="text-xl md:text-2xl font-semibold mb-4 text-blue-700">Welcome, Math Whiz!</h2>
+                <p class="text-slate-600 mb-4">Enter your name to start.</p>
+                <input type="text" id="userNameInput" placeholder="Your Name" class="w-full p-2 border border-slate-300 rounded mb-4 focus:ring-blue-500 focus:border-blue-500 text-center text-lg">
+                <button onclick="saveUserName()" class="action-button bg-blue-500 hover:bg-blue-600 text-white w-full py-3 px-6 text-lg">Start Solving!</button>
+            </div>
+        </div>
 
         <!-- Set Selection Screen -->
         <div id="setSelectionScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg text-center">
+            <!-- Screen Time Progress Bar -->
+            <div id="screenTimeContainer" class="mb-8">
+                <div class="flex justify-between items-center mb-1 text-sm">
+                    <span class="font-semibold text-slate-700">This Week's Screen Time</span>
+                    <span id="screenTimeText" class="font-bold text-blue-600">Loading...</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-4 border border-slate-300">
+                    <div id="screenTimeBarFill" class="bg-gradient-to-r from-green-400 to-blue-500 h-full rounded-full text-white text-xs flex items-center justify-center" style="width: 0%">
+                        <span id="screenTimeBarText"></span>
+                    </div>
+                </div>
+            </div>
+
             <h1 class="text-2xl md:text-3xl font-bold text-blue-700 mb-2">PSLE Math Practice</h1>
             <p class="text-slate-600 mb-8">Choose a topic set to master!</p>
             <div id="setButtonsContainer" class="grid grid-cols-1 gap-4">
-                <p id="loadingText" class="text-slate-500">Loading question sets from Google Sheets...</p>
+                <p id="loadingText" class="text-slate-500">Loading question sets...</p>
             </div>
         </div>
 
@@ -69,28 +82,27 @@
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-sm font-medium text-slate-600">Progress</span>
-                    <span id="progressText" class="text-sm font-medium text-blue-700">0 / 0</span> </div>
+                    <span id="progressText" class="text-sm font-medium text-blue-700">0 / 0</span>
+                </div>
                 <div class="w-full bg-slate-200 rounded-full h-2.5">
                     <div id="progressBarFill" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
                 </div>
             </div>
-
             <div id="flashcard" class="bg-white border border-slate-300 rounded-lg p-6 mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300">
-                 <div id="flashcardContent" class="w-full flex flex-col items-center justify-center">
-                     <div id="feedbackIconContainer" class="hidden text-7xl md:text-8xl mb-2"></div>
-                     <p id="questionText" class="text-lg md:text-xl font-semibold text-slate-800"></p>
-                     <div id="feedbackText" class="mt-2 text-base md:text-lg font-semibold"></div>
-                     <p id="continueText" class="mt-4 text-sm text-slate-500 hidden">Tap card to continue...</p>
-                 </div>
+                <div id="flashcardContent" class="w-full flex flex-col items-center justify-center">
+                    <div id="feedbackIconContainer" class="hidden text-7xl md:text-8xl mb-2"></div>
+                    <p id="questionText" class="text-lg md:text-xl font-semibold text-slate-800"></p>
+                    <div id="feedbackText" class="mt-2 text-base md:text-lg font-semibold"></div>
+                    <p id="continueText" class="mt-4 text-sm text-slate-500 hidden">Tap card to continue...</p>
+                </div>
             </div>
-
             <div id="answerChoices" class="grid grid-cols-1 gap-3 md:gap-4">
                 <button id="choice1" class="choice-button bg-slate-100 hover:bg-slate-200 text-slate-700 text-base md:text-lg"></button>
                 <button id="choice2" class="choice-button bg-slate-100 hover:bg-slate-200 text-slate-700 text-base md:text-lg"></button>
                 <button id="choice3" class="choice-button bg-slate-100 hover:bg-slate-200 text-slate-700 text-base md-text-lg"></button>
                 <button id="choice4" class="choice-button bg-slate-100 hover:bg-slate-200 text-slate-700 text-base md-text-lg"></button>
             </div>
-             <button onclick="showSetSelection()" class="action-button mt-6 bg-slate-500 hover:bg-slate-600 text-white w-full text-sm py-3 px-6">Back to Set Selection</button>
+            <button onclick="showSetSelection()" class="action-button mt-6 bg-slate-500 hover:bg-slate-600 text-white w-full text-sm py-3 px-6">Back to Set Selection</button>
         </div>
 
         <!-- Results Screen -->
@@ -108,11 +120,14 @@
             </div>
             <p class="text-lg text-slate-700 mb-2">Percentage: <span id="percentage" class="font-semibold"></span>%</p>
             <p class="text-lg text-slate-700 mb-6">Time: <span id="timeTaken" class="font-semibold"></span> seconds</p>
+            
+            <p id="screenTimeAwardText" class="text-xl text-green-600 font-bold mb-4 hidden"></p>
             <p id="encouragementText" class="text-lg text-blue-700 font-semibold mb-6"></p>
+            
             <div id="incorrectListContainer" class="mb-6 text-left">
                 <h3 class="text-xl font-semibold text-red-600 mb-3">Review Incorrect Answers:</h3>
                 <ul id="incorrectList" class="list-disc list-inside space-y-1 text-slate-600"></ul>
-                 <p id="noIncorrectText" class="text-emerald-600 font-semibold hidden">Great job, no incorrect answers!</p>
+                <p id="noIncorrectText" class="text-emerald-600 font-semibold hidden">Great job, no incorrect answers!</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button id="redoIncorrectButton" onclick="redoIncorrect()" class="action-button bg-orange-500 hover:bg-orange-600 text-white w-full py-3 px-6">Redo Incorrect</button>
@@ -126,21 +141,13 @@
     // --- Configuration ---
     const QUESTIONS_PER_SET = 15;
     const AUTO_PROCEED_DELAY = 1200;
-    const USER_NAME_STORAGE_KEY = 'psleMathApp_v2';
-    
-    /************************************************************************
-     *    THE ONLY PART YOU NEED TO EDIT
-     * 
-     *    Paste the Web App URL you copied from your 
-     *    Google Apps Script deployment between the single quotes below.
-     ************************************************************************/
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfKOXXssyg_9G_UKiR-hU6lyl0BoDGS6eiSPDFN2gaVbWHECK1Gweye8FHEDVhOCxHkA/exec';
-    /************************************************************************/
-
-    // This will be filled by data from Google Sheets
-    let allFlashcardSets = {};
+    const USER_NAME_STORAGE_KEY = 'psleMathApp_v3';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGDSmbiScHYc2vVKZmO4MKIGRar5fG4ArxOVak6ocw/exec';
+    const REWARD_THRESHOLD_PERCENT = 90;
+    const MINUTES_PER_REWARD = 5;
 
     // --- State Variables ---
+    let allFlashcardSets = {};
     let currentSetData = [];
     let currentQuestionIndex = 0;
     let score = 0;
@@ -151,12 +158,11 @@
     let proceedTimeoutId = null;
     let isWaitingToProceed = false;
     let userName = '';
+    let currentScreenTime = 0;
 
-    // --- Sound Synthesis (Tone.js) ---
+    // --- Sound & Effects ---
     const correctSound = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.2 }, }).toDestination();
     const incorrectSound = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination();
-
-    // --- Confetti ---
     const confettiCanvas = document.getElementById('confettiCanvas');
     const myConfetti = confetti.create(confettiCanvas, { resize: true, useWorker: true });
 
@@ -188,7 +194,11 @@
     const raceTrackContainer = document.querySelector('#resultsScreen .race-track-container');
     const raceTrackFillEl = document.getElementById('raceTrackFill');
     const rocketEl = document.getElementById('rocketEl');
-
+    const screenTimeText = document.getElementById('screenTimeText');
+    const screenTimeBarFill = document.getElementById('screenTimeBarFill');
+    const screenTimeBarText = document.getElementById('screenTimeBarText');
+    const screenTimeAwardText = document.getElementById('screenTimeAwardText');
+    
     // --- Event Listeners ---
     flashcard.addEventListener('click', () => {
         if (isWaitingToProceed && !flashcard.classList.contains('incorrect-state')) {
@@ -210,36 +220,92 @@
         }
     }
 
-    // --- Core Application Logic ---
+    // --- Data & UI Functions ---
+    function fetchAllData() {
+        loadingText.style.display = 'block';
+        fetchFlashcardData();
+        fetchScreenTime();
+    }
+
     function fetchFlashcardData() {
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'PASTE_YOUR_PUBLISHED_GOOGLE_SCRIPT_URL_HERE') {
-            loadingText.textContent = 'Error: Google Script URL is not set in the HTML file.';
-            loadingText.style.color = 'red';
-            return;
-        }
-        loadingText.textContent = 'Loading question sets from Google Sheets...';
-        loadingText.style.color = 'inherit';
         fetch(APPS_SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'error') {
-                    throw new Error(data.message);
-                }
+                if (data.status === 'error') throw new Error(data.message);
                 allFlashcardSets = data;
                 loadingText.style.display = 'none';
                 populateSetButtons();
             })
             .catch(error => {
-                console.error('Error fetching flashcard data:', error);
-                loadingText.textContent = 'Failed to load questions. Check Apps Script URL and Sheet setup.';
+                loadingText.textContent = 'Failed to load questions.';
                 loadingText.style.color = 'red';
+                console.error('Flashcard fetch error:', error);
             });
     }
 
+    function fetchScreenTime() {
+        if (!userName) return;
+        const url = `${APPS_SCRIPT_URL}?action=getScreenTime&name=${encodeURIComponent(userName)}`;
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentScreenTime = data.minutes;
+                    updateScreenTimeUI(currentScreenTime);
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                screenTimeText.textContent = 'Error';
+                console.error('Screen time fetch error:', error);
+            });
+    }
+    
+    function updateScreenTimeUI(minutes) {
+        const goal = 30; // A weekly goal of 30 minutes, can be changed.
+        const percentage = Math.min(100, (minutes / goal) * 100);
+        screenTimeText.textContent = `${minutes} min earned`;
+        screenTimeBarFill.style.width = `${percentage}%`;
+        screenTimeBarText.textContent = `${minutes} min`;
+    }
+
+    function sendDataToGoogle(payload) {
+        fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.error(`Error sending ${payload.payloadType}:`, err));
+    }
+
+    // --- Core Application Logic ---
+    function init() {
+        userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
+        if (userName) {
+            showSetSelection();
+            fetchAllData();
+        } else {
+            nameModal.style.display = 'flex';
+            userNameInput.focus();
+        }
+    }
+
+    function saveUserName() {
+        const name = userNameInput.value.trim();
+        if (!name) { alert('Please enter your name!'); return; }
+        userName = name;
+        localStorage.setItem(USER_NAME_STORAGE_KEY, userName);
+        nameModal.style.display = 'none';
+        showSetSelection();
+        fetchAllData();
+    }
+    
     function populateSetButtons() {
         setButtonsContainer.innerHTML = '';
         if (Object.keys(allFlashcardSets).length === 0) {
-             setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found. Please check your Google Sheet.</p>';
+             setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found.</p>';
              return;
         }
         Object.keys(allFlashcardSets).forEach(setName => {
@@ -254,27 +320,13 @@
         });
     }
 
-    function saveUserName() {
-        const name = userNameInput.value.trim();
-        if (!name) {
-            alert('Please enter your name!');
-            return;
-        }
-        userName = name;
-        localStorage.setItem(USER_NAME_STORAGE_KEY, userName);
-        nameModal.style.display = 'none';
-        showSetSelection();
-    }
-
     function startFlashcardSession(selectedSet, setName) {
         Tone.start().catch(e => console.warn("Audio context could not start:", e));
         let fullSetCopy = [...selectedSet]; 
         shuffleArray(fullSetCopy);
         currentSetData = fullSetCopy.slice(0, Math.min(fullSetCopy.length, QUESTIONS_PER_SET)); 
         currentSetData.setName = setName; 
-        currentQuestionIndex = 0;
-        score = 0;
-        incorrectAnswers = [];
+        currentQuestionIndex = 0; score = 0; incorrectAnswers = [];
         isRedoing = false;
         setSelectionScreen.classList.add('hidden');
         resultsScreen.classList.add('hidden');
@@ -285,7 +337,7 @@
     }
 
     function resetCardState() {
-        if (proceedTimeoutId) { clearTimeout(proceedTimeoutId); proceedTimeoutId = null; }
+        if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
         isWaitingToProceed = false;
         flashcard.classList.remove('shake', 'correct-state-static', 'incorrect-state', 'clickable-card');
         questionText.classList.remove('hidden');
@@ -317,15 +369,13 @@
                 button.dataset.answer = displayOptions[index];
                 button.onclick = () => checkAnswer(button);
                 button.style.display = 'flex';
-            } else {
-                button.style.display = 'none'; 
             }
         });
     }
 
     function updateProgress() {
         const totalQuestions = currentSetData.length;
-        const completed = currentQuestionIndex;
+        const completed = isRedoing ? currentQuestionIndex : score + incorrectAnswers.length;
         const progressPercentage = totalQuestions > 0 ? (completed / totalQuestions) * 100 : 0;
         progressText.textContent = `${completed} / ${totalQuestions}`;
         progressBarFill.style.width = `${progressPercentage}%`;
@@ -334,65 +384,58 @@
     function checkAnswer(button) {
         Tone.start().catch(e => console.warn("Audio context failed:", e));
         if (isWaitingToProceed && !flashcard.classList.contains('incorrect-state')) return;
+        
         const selectedAnswer = button.dataset.answer;
         const questionData = currentSetData[currentQuestionIndex];
         const correctAnswer = questionData.correctAnswer;
         choiceButtons.forEach(btn => btn.disabled = true);
 
-        if (selectedAnswer === correctAnswer) {
+        if (String(selectedAnswer) === String(correctAnswer)) {
             if (!isRedoing) score++;
             flashcard.classList.add('correct-state-static', 'clickable-card');
-            feedbackIconContainer.innerHTML = '<span class="text-7xl md:text-8xl">✓</span>';
+            feedbackIconContainer.innerHTML = '✓';
             feedbackIconContainer.classList.remove('hidden');
             questionText.classList.add('hidden');
             feedbackText.textContent = 'Correct!';
             myConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
             correctSound.triggerAttackRelease("G5", "8n", Tone.now());
-            button.className = 'choice-button bg-emerald-600 text-white ring-2 ring-emerald-800 text-base md:text-lg shadow-md';
+            button.className = 'choice-button bg-emerald-600 text-white ring-2 ring-emerald-800 shadow-md';
             isWaitingToProceed = true;
             continueText.classList.remove('hidden');
             proceedTimeoutId = setTimeout(proceedToNext, AUTO_PROCEED_DELAY);
-            currentQuestionIndex++; 
-            updateProgress(); 
         } else {
             flashcard.classList.add('shake', 'incorrect-state');
-            feedbackIconContainer.innerHTML = '<span class="text-7xl md:text-8xl">✗</span>';
+            feedbackIconContainer.innerHTML = '✗';
             feedbackIconContainer.classList.remove('hidden');
             questionText.classList.add('hidden'); 
             const explanation = questionData.explanation || "No explanation available.";
-            feedbackText.innerHTML = `
-                <div>Correct Answer: <span class="font-bold">${correctAnswer}</span></div>
-                <div class="explanation-box">${explanation}</div>
-                <div class="prompt-guidance">Click the correct answer (green) to continue.</div>
-            `;
+            feedbackText.innerHTML = `<div>Correct Answer: <span class="font-bold">${correctAnswer}</span></div><div class="explanation-box">${explanation}</div><div class="prompt-guidance">Click the correct answer (green) to continue.</div>`;
             incorrectSound.triggerAttackRelease("C3", "8n");
             if (!isRedoing) {
                 incorrectAnswers.push({ questionData: questionData, userAnswer: selectedAnswer });
             }
             isWaitingToProceed = false;
             flashcard.classList.remove('clickable-card');
-            if (proceedTimeoutId) { clearTimeout(proceedTimeoutId); }
+            if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
+            
             choiceButtons.forEach(btn => {
-                if (btn.dataset.answer === correctAnswer) {
-                    btn.className = 'choice-button bg-emerald-500 hover:bg-emerald-600 text-white text-base md:text-lg';
+                if (String(btn.dataset.answer) === String(correctAnswer)) {
+                    btn.className = 'choice-button bg-emerald-500 hover:bg-emerald-600 text-white';
                     btn.disabled = false;
-                    btn.onclick = function() {
-                        currentQuestionIndex++; 
-                        updateProgress(); 
-                        proceedToNext();
-                    };
+                    btn.onclick = proceedToNext;
                 } else if (btn === button) {
-                    btn.className = 'choice-button bg-red-700 text-white ring-2 ring-red-900 text-base md:text-lg shadow-md';
+                    btn.className = 'choice-button bg-red-700 text-white ring-2 ring-red-900 shadow-md';
                 } else {
-                    btn.className = 'choice-button bg-slate-200 text-slate-500 text-base md:text-lg forced-disabled-look';
+                    btn.className = 'choice-button bg-slate-200 text-slate-500 forced-disabled-look';
                 }
             });
         }
+        if (!isRedoing) updateProgress();
     }
 
     function proceedToNext() {
-        if (proceedTimeoutId) { clearTimeout(proceedTimeoutId); }
-        isWaitingToProceed = false;
+        currentQuestionIndex++;
+        if (isRedoing) updateProgress();
         displayQuestion();
     }
 
@@ -402,15 +445,28 @@
         const totalQuestions = currentSetData.length;
         const currentScore = isRedoing ? (totalQuestions - incorrectAnswers.length) : score;
         const percentage = totalQuestions > 0 ? Math.round((currentScore / totalQuestions) * 100) : 0;
+
         resultsHeadingEl.textContent = isRedoing ? 'Review Complete!' : `${currentSetData.setName || 'Session'} Complete!`;
         scoreDisplayEl.textContent = `${currentScore} / ${totalQuestions}`;
         percentageEl.textContent = `${percentage}`;
         timeTakenEl.textContent = `${timeDiff}s`;
+        
+        screenTimeAwardText.classList.add('hidden'); // Hide by default
+        if (!isRedoing && percentage > REWARD_THRESHOLD_PERCENT) {
+            screenTimeAwardText.textContent = `🎉 You earned ${MINUTES_PER_REWARD} minutes of screen time! 🎉`;
+            screenTimeAwardText.classList.remove('hidden');
+            const payload = { payloadType: 'awardScreenTime', name: userName, minutes: MINUTES_PER_REWARD };
+            sendDataToGoogle(payload);
+            updateScreenTimeUI(currentScreenTime + MINUTES_PER_REWARD); // Instant visual feedback
+        }
+
         if (percentage === 100) encouragementTextEl.textContent = "Perfect score! You have mastered this topic!";
         else if (percentage >= 70) encouragementTextEl.textContent = "Excellent work! Your understanding is strong.";
         else encouragementTextEl.textContent = "Good job! Review the incorrect answers to strengthen your knowledge.";
+        
         flashcardScreen.classList.add('hidden');
         resultsScreen.classList.remove('hidden');
+        
         requestAnimationFrame(() => {
             setTimeout(() => { 
                 const trackWidth = raceTrackContainer.offsetWidth;
@@ -420,82 +476,57 @@
                 raceTrackFillEl.style.width = `${finalRocketPosition}px`;
             }, 100);
         });
+
         incorrectList.innerHTML = '';
         if (incorrectAnswers.length > 0) {
             incorrectListContainer.classList.remove('hidden'); noIncorrectText.classList.add('hidden');
+            redoIncorrectButton.classList.remove('hidden');
             incorrectAnswers.forEach(item => {
                 const li = document.createElement('li');
                 li.innerHTML = `<b>Q:</b> ${item.questionData.question}<br/><b>Your:</b> <span class="text-red-500">${item.userAnswer}</span><br/><b>Correct:</b> <span class="text-emerald-600">${item.questionData.correctAnswer}</span>`;
                 incorrectList.appendChild(li);
             });
-            redoIncorrectButton.classList.remove('hidden');
-            redoIncorrectButton.disabled = isRedoing || incorrectAnswers.length === 0;
         } else {
             incorrectListContainer.classList.add('hidden'); noIncorrectText.classList.remove('hidden');
             redoIncorrectButton.classList.add('hidden');
         }
+        
         if (!isRedoing) {
-            sendResultsToGoogleSheet({
-                setName: currentSetData.setName || "Unknown Set", score: currentScore, totalQuestions: totalQuestions,
-                percentage: percentage, timeTaken: timeDiff,
-                incorrectAnswersJSON: JSON.stringify(incorrectAnswers.map(item => ({ q: item.questionData.question, u: item.userAnswer, c: item.questionData.correctAnswer }))),
-                name: userName
-            });
+            const payload = {
+                payloadType: 'flashcardResults',
+                name: userName, setName: currentSetData.setName || "Unknown Set", score: currentScore, totalQuestions,
+                percentage, timeTaken: timeDiff,
+                incorrectAnswersJSON: JSON.stringify(incorrectAnswers.map(item => ({ q: item.questionData.question, u: item.userAnswer, c: item.questionData.correctAnswer })))
+            };
+            sendDataToGoogle(payload);
+        } else {
+            isRedoing = false;
         }
-        if (isRedoing) { incorrectAnswers = []; isRedoing = false; }
     }
     
-    function sendResultsToGoogleSheet(data) {
-        const payload = { payloadType: 'flashcardResults', ...data };
-        fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(err => console.error("Error sending results to Google Sheet:", err));
-    }
-
     function redoIncorrect() {
         if (incorrectAnswers.length === 0) return;
         const originalSetName = currentSetData.setName.replace(" (Redo)", "");
         currentSetData = incorrectAnswers.map(item => item.questionData);
         currentSetData.setName = `${originalSetName} (Redo)`;
-        currentQuestionIndex = 0;
-        incorrectAnswers = []; 
-        isRedoing = true;
+        currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = true;
         resultsScreen.classList.add('hidden');
         flashcardScreen.classList.remove('hidden');
-        startTime = new new Date();
+        startTime = new Date();
         updateProgress(); 
         displayQuestion();
     }
 
     function showSetSelection() {
-        if (proceedTimeoutId) { clearTimeout(proceedTimeoutId); }
+        if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
         isWaitingToProceed = false; isRedoing = false; 
         nameModal.style.display = 'none';
         flashcardScreen.classList.add('hidden');
         resultsScreen.classList.add('hidden');
         setSelectionScreen.classList.remove('hidden');
-        
-        if (Object.keys(allFlashcardSets).length > 0) {
-            populateSetButtons();
-        }
     }
 
-    // --- Initialization ---
-    document.addEventListener('DOMContentLoaded', () => {
-        userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
-        if (userName) {
-            showSetSelection(); 
-            fetchFlashcardData();
-        } else {
-            nameModal.style.display = 'flex';
-            userNameInput.focus();
-            fetchFlashcardData();
-        }
-    });
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
