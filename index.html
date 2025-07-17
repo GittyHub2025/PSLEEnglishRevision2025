@@ -337,8 +337,7 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
         document.getElementById('continueText').style.display = 'block';
         
         flashcardDiv.onclick = proceedToNext;
-        setTimeout(proceedToNext, CONFIG.AUTO_PROCEED_DELAY);
-
+    
     } else {
         sounds.incorrect.triggerAttackRelease("C3", "8n");
         if (!state.isRedoing) state.incorrectAnswers.push({ questionData, userAnswer: selectedAnswer });
