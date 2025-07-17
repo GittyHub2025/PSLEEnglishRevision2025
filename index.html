@@ -128,8 +128,14 @@
     const AUTO_PROCEED_DELAY = 1200;
     const USER_NAME_STORAGE_KEY = 'psleMathApp_v2';
     
-    // --- VERY IMPORTANT: Paste the Web App URL you copied from Google Apps Script deployment HERE ---
-    const APPS_SCRIPT_URL = 'PASTE_YOUR_PUBLISHED_GOOGLE_SCRIPT_URL_HERE';
+    /************************************************************************
+     *    THE ONLY PART YOU NEED TO EDIT
+     * 
+     *    Paste the Web App URL you copied from your 
+     *    Google Apps Script deployment between the single quotes below.
+     ************************************************************************/
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfKOXXssyg_9G_UKiR-hU6lyl0BoDGS6eiSPDFN2gaVbWHECK1Gweye8FHEDVhOCxHkA/exec';
+    /************************************************************************/
 
     // This will be filled by data from Google Sheets
     let allFlashcardSets = {};
@@ -206,7 +212,11 @@
 
     // --- Core Application Logic ---
     function fetchFlashcardData() {
-        console.log("Attempting to fetch flashcard data...");
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'PASTE_YOUR_PUBLISHED_GOOGLE_SCRIPT_URL_HERE') {
+            loadingText.textContent = 'Error: Google Script URL is not set in the HTML file.';
+            loadingText.style.color = 'red';
+            return;
+        }
         loadingText.textContent = 'Loading question sets from Google Sheets...';
         loadingText.style.color = 'inherit';
         fetch(APPS_SCRIPT_URL)
@@ -215,7 +225,6 @@
                 if (data.status === 'error') {
                     throw new Error(data.message);
                 }
-                console.log("Data fetched successfully:", data);
                 allFlashcardSets = data;
                 loadingText.style.display = 'none';
                 populateSetButtons();
@@ -457,7 +466,7 @@
         isRedoing = true;
         resultsScreen.classList.add('hidden');
         flashcardScreen.classList.remove('hidden');
-        startTime = new Date();
+        startTime = new new Date();
         updateProgress(); 
         displayQuestion();
     }
@@ -477,7 +486,6 @@
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
-        console.log("DOM loaded. Initializing app.");
         userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
         if (userName) {
             showSetSelection(); 
@@ -489,6 +497,5 @@
         }
     });
 </script>
-
 </body>
 </html>
