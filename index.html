@@ -61,13 +61,7 @@
     <canvas id="confettiCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-[100]"></canvas>
 
 <script>
-// ===================================================================================
-//  GLOBAL ERROR HANDLER
-// ===================================================================================
-window.onerror = function (message, source, lineno, colno, error) {
-    alert(`A critical error occurred:\n\nMessage: ${message}\nSource: ${source}\nLine: ${lineno}`);
-    return true; // Prevents the default browser error handling
-};
+
 
 // ===================================================================================
 //  CONFIGURATION & CONSTANTS
@@ -299,26 +293,33 @@ function renderFlashcardScreen() {
     `;
 }
 
+// ===================================================================================
+//  CORE APPLICATION LOGIC (Targeted Fix 1 of 3)
+// ===================================================================================
 function generateChoiceButtons(options, correctAnswer) {
+    // This is the NEW generateChoiceButtons function
     let shuffledOptions = [...options];
     shuffleArray(shuffledOptions);
-    return shuffledOptions.map(option => `
-        <button 
-            class="choice-button action-button bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 text-base md:text-lg rounded-lg min-h-[60px]"
-            onclick="checkAnswer(this, \`${btoa(option)}\`, \`${btoa(correctAnswer)}\`)">
-            ${option}
-        </button>
-    `).join('');
+    return shuffledOptions.map(option => {
+        // Compare the current option with the correct answer to know if it's the right one
+        const isCorrect = (option === correctAnswer);
+        return `
+            <button 
+                class="choice-button action-button bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 text-base md:text-lg rounded-lg min-h-[60px]"
+                onclick="checkAnswer(this, ${isCorrect})">
+                ${option}
+            </button>
+        `;
+    }).join('');
 }
 
 // ===================================================================================
-//  MODULE: CORE APPLICATION LOGIC (Targeted Fix)
+//  MODULE: CORE APPLICATION LOGIC (Targeted Fix 2 of 3)
 // ===================================================================================
-function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
+function checkAnswer(buttonEl, isCorrect) {
     // This is the NEW checkAnswer function
-    const selectedAnswer = atob(selectedAnswerB64);
-    const correctAnswer = atob(correctAnswerB64);
     const questionData = state.currentSetData[state.currentQuestionIndex];
+    const correctAnswer = questionData.correctAnswer;
     
     document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = true);
 
@@ -331,7 +332,7 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
     questionTextDiv.style.display = 'none';
     feedbackIconDiv.style.display = 'block';
 
-    if (selectedAnswer === correctAnswer) {
+    if (isCorrect) {
         sounds.correct.triggerAttackRelease("G5", "8n");
         DOM.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         if (!state.isRedoing) state.score++;
@@ -341,16 +342,13 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
         feedbackTextDiv.textContent = 'Correct!';
         continueTextDiv.style.display = 'block';
         
-        // Set the timer to automatically advance
         proceedTimeoutId = setTimeout(proceedToNext, CONFIG.AUTO_PROCEED_DELAY);
-        
-        // Set a click listener. When clicked, it will call proceedToNext.
-        // proceedToNext itself is now responsible for clearing the timer.
         flashcardDiv.onclick = proceedToNext;
 
     } else {
         sounds.incorrect.triggerAttackRelease("C3", "8n");
-        if (!state.isRedoing) state.incorrectAnswers.push({ questionData, userAnswer: selectedAnswer });
+        const userAnswer = buttonEl.textContent.trim();
+        if (!state.isRedoing) state.incorrectAnswers.push({ questionData, userAnswer });
 
         flashcardDiv.className = 'bg-red-500 text-white p-6 rounded-lg mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300 animate-shake';
         setTimeout(() => flashcardDiv.classList.remove('animate-shake'), 500);
@@ -362,13 +360,10 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
             <div class="prompt-guidance mt-3">Click the correct answer below to continue.</div>
         `;
         
-        // When an answer is wrong, the card should not be clickable to auto-advance
         flashcardDiv.onclick = null; 
 
         document.querySelectorAll('.choice-button').forEach(btn => {
-            // Decode the base64 from the onclick attribute to compare
-            const btnAnswer = atob(btn.getAttribute('onclick').split(',')[1].slice(2, -2));
-            if (btnAnswer === correctAnswer) {
+            if (btn.textContent.trim() === correctAnswer) {
                 btn.className = 'choice-button action-button bg-green-500 hover:bg-green-600 text-white p-3 text-base md:text-lg rounded-lg min-h-[60px]';
                 btn.disabled = false;
                 btn.onclick = proceedToNext;
