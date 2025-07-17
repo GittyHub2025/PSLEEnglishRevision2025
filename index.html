@@ -157,24 +157,20 @@
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         }).catch(err => console.error(`Error sending ${payload.payloadType}:`, err));
     }
+    
+    // ===================================================================================
+    //  MODULE: UTILITY FUNCTIONS  (THE FIX IS HERE)
+    // ===================================================================================
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
 
     // ===================================================================================
-//  MODULE: UTILITY FUNCTIONS
-// ===================================================================================
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
-
-// ===================================================================================
-//  MODULE: UI & SCREEN MANAGEMENT
-// ===================================================================================
-function showScreen(screen) {
-    // ... rest of the code ...
-    
+    //  MODULE: UI & SCREEN MANAGEMENT
+    // ===================================================================================
     function showScreen(screen) {
         [setSelectionScreen, flashcardScreen, resultsScreen].forEach(s => s.classList.add('hidden'));
         if (screen) screen.classList.remove('hidden');
@@ -190,31 +186,22 @@ function showScreen(screen) {
         screenTimeInfo.innerHTML = `<strong>${greeting}arn 5 extra minutes</strong> for every quiz set you pass with >90%! Time resets every Sunday.`;
     }
 
-    // NEW populateSetButtons function with a debugger log
-function populateSetButtons() {
-    setButtonsContainer.innerHTML = '';
-    if (Object.keys(allFlashcardSets).length === 0 && loadingText.style.display === 'none') {
-         setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found.</p>'; 
-         return;
-    }
-    Object.keys(allFlashcardSets).forEach(setName => {
-        const set = allFlashcardSets[setName];
-        
-        // --- ERROR TRACKING STEP 1: Log the data for each button ---
-        console.log(`Creating button for set: "${setName}". Data is:`, set);
-
-        if (set && Array.isArray(set) && set.length > 0) { 
-            const button = document.createElement('button');
-            button.textContent = `Start ${setName}`;
-            button.className = 'action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white mb-3 last:mb-0'; 
-            button.onclick = () => startFlashcardSession(set, setName);
-            setButtonsContainer.appendChild(button);
-        } else {
-            // This else block helps us see if a set was found but had invalid data
-            console.warn(`Skipping button for "${setName}" because its data is not a valid array or is empty.`);
+    function populateSetButtons() {
+        setButtonsContainer.innerHTML = '';
+        if (Object.keys(allFlashcardSets).length === 0 && loadingText.style.display === 'none') {
+             setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found.</p>'; return;
         }
-    });
-}
+        Object.keys(allFlashcardSets).forEach(setName => {
+            const set = allFlashcardSets[setName];
+            if (set && Array.isArray(set) && set.length > 0) { 
+                const button = document.createElement('button');
+                button.textContent = `Start ${setName}`;
+                button.className = 'action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white mb-3 last:mb-0'; 
+                button.onclick = () => startFlashcardSession(set, setName);
+                setButtonsContainer.appendChild(button);
+            }
+        });
+    }
 
     function resetCardState() {
         if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
@@ -230,6 +217,9 @@ function populateSetButtons() {
         });
     }
 
+    // ===================================================================================
+    //  MODULE: CORE APPLICATION & GAME LOGIC
+    // ===================================================================================
     function init() {
         userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
         if (userName) { persistentHeader.classList.remove('hidden'); showSetSelection(); } 
@@ -248,39 +238,18 @@ function populateSetButtons() {
     
     function showSetSelection() { showScreen(setSelectionScreen); fetchAllData(); }
 
-  // NEW startFlashcardSession function with robust error checking
-function startFlashcardSession(selectedSet, setName) {
-    // --- ERROR TRACKING STEP 2: The most important check ---
-    if (!selectedSet || !Array.isArray(selectedSet) || selectedSet.length === 0) {
-        console.error('CRITICAL ERROR: startFlashcardSession was called with invalid data for set:', setName);
-        console.error('Data received:', selectedSet);
-        alert(`Error: Could not load the quiz for "${setName}". The data is missing or invalid. Please check the console for more details.`);
-        return; // Stop the function from running further
-    }
-
-    try {
+    function startFlashcardSession(selectedSet, setName) {
         Tone.start().catch(e => console.warn("Audio context could not start:", e));
-        
         let fullSetCopy = [...selectedSet];
         shuffleArray(fullSetCopy);
-        
         currentSetData = fullSetCopy.slice(0, Math.min(fullSetCopy.length, QUESTIONS_PER_SET)); 
         currentSetName = setName;
-        
-        currentQuestionIndex = 0; 
-        score = 0; 
-        incorrectAnswers = []; 
-        isRedoing = false;
-        
+        currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = false;
         showScreen(flashcardScreen);
         startTime = new Date();
         updateProgress(); 
         displayQuestion();
-    } catch (error) {
-        console.error(`A critical error occurred while starting the quiz for "${setName}":`, error);
-        alert("An unexpected error occurred. Please refresh the page and try again.");
     }
-}
 
     function displayQuestion() {
         resetCardState();
