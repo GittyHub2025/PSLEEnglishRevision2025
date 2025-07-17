@@ -46,8 +46,11 @@
                 <div id="screenTimeInfo" class="mt-2 text-xs text-slate-500 text-center"></div>
             </header>
 
+            <!-- SUBJECT SELECTION SCREEN (NEW) -->
+            <div id="subjectSelectionScreen" class="bg-white p-6 md:p-8 rounded-xl shadow-lg text-center"></div>
+
             <!-- SET SELECTION SCREEN -->
-            <div id="setSelectionScreen" class="bg-white p-6 md:p-8 rounded-xl shadow-lg text-center"></div>
+            <div id="setSelectionScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg text-center"></div>
             
             <!-- FLASHCARD GAME SCREEN -->
             <div id="flashcardScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg"></div>
@@ -59,15 +62,12 @@
     <canvas id="confettiCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-[100]"></canvas>
 
 <script>
-// ===================================================================================
-//  THE ENTIRE APPLICATION LOGIC IS REWRITTEN AND ENCAPSULATED IN THIS 'app' OBJECT
-// ===================================================================================
 const app = {
     // --- Configuration ---
     CONFIG: {
         QUESTIONS_PER_SET: 15,
         AUTO_PROCEED_DELAY: 1200,
-        USER_NAME_STORAGE_KEY: 'quizApp_v10_stable', // New key for a fresh start
+        USER_NAME_STORAGE_KEY: 'quizApp_v11_subjects',
         REWARD_THRESHOLD_PERCENT: 90,
         MINUTES_PER_REWARD: 5,
         APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxfKOXXssyg_9G_UKiR-hU6lyl0BoDGS6eiSPDFN2gaVbWHECK1Gweye8FHEDVhOCxHkA/exec'
@@ -75,7 +75,7 @@ const app = {
 
     // --- Application State ---
     state: {
-        allFlashcardSets: {},
+        allFlashcardData: {}, // Will store raw data from the sheet
         currentSetData: [],
         currentSetName: '',
         incorrectAnswers: [],
@@ -89,17 +89,15 @@ const app = {
 
     // --- DOM Element Cache ---
     DOM: {},
-
-    // --- Sound Effects ---
     sounds: {},
     
     // --- Initialization ---
     init() {
-        // Cache all DOM elements at the start
         this.DOM = {
             mainContent: document.getElementById('mainContent'),
             nameModal: document.getElementById('nameModal'),
             userNameInput: document.getElementById('userNameInput'),
+            subjectSelectionScreen: document.getElementById('subjectSelectionScreen'),
             setSelectionScreen: document.getElementById('setSelectionScreen'),
             flashcardScreen: document.getElementById('flashcardScreen'),
             resultsScreen: document.getElementById('resultsScreen'),
@@ -109,18 +107,14 @@ const app = {
             screenTimeInfo: document.getElementById('screenTimeInfo'),
             confetti: confetti.create(document.getElementById('confettiCanvas'), { resize: true, useWorker: true })
         };
-        
-        // Initialize sounds
         this.sounds = {
             correct: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.2 }, }).toDestination(),
             incorrect: new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination()
         };
-
-        // Check for saved user
         this.state.userName = localStorage.getItem(this.CONFIG.USER_NAME_STORAGE_KEY) || '';
         if (this.state.userName) {
             this.DOM.mainContent.style.display = 'block';
-            this.showSetSelection();
+            this.showSubjectSelection();
         } else {
             this.DOM.mainContent.style.display = 'none';
             this.DOM.nameModal.style.display = 'flex';
@@ -136,33 +130,37 @@ const app = {
         localStorage.setItem(this.CONFIG.USER_NAME_STORAGE_KEY, this.state.userName);
         this.DOM.nameModal.style.display = 'none';
         this.DOM.mainContent.style.display = 'block';
-        this.showSetSelection();
+        this.showSubjectSelection();
     },
     
     showScreen(screenElement) {
-        [this.DOM.setSelectionScreen, this.DOM.flashcardScreen, this.DOM.resultsScreen].forEach(s => s.style.display = 'none');
+        [this.DOM.subjectSelectionScreen, this.DOM.setSelectionScreen, this.DOM.flashcardScreen, this.DOM.resultsScreen].forEach(s => s.style.display = 'none');
         if (screenElement) screenElement.style.display = 'block';
     },
 
-    showSetSelection() {
-        this.showScreen(this.DOM.setSelectionScreen);
+    showSubjectSelection() {
+        this.showScreen(this.DOM.subjectSelectionScreen);
         this.fetchFlashcardData();
         this.fetchScreenTime();
     },
 
+    showSetSelection(subject) {
+        this.showScreen(this.DOM.setSelectionScreen);
+        this.renderSetSelectionScreen(subject);
+    },
+
     // --- Data Fetching ---
     async fetchFlashcardData() {
-        this.DOM.setSelectionScreen.innerHTML = `<div class="text-center"><p class="text-slate-500">Loading question sets...</p></div>`;
+        this.DOM.subjectSelectionScreen.innerHTML = `<div class="text-center"><p class="text-slate-500">Loading subjects...</p></div>`;
         try {
             const response = await fetch(this.CONFIG.APPS_SCRIPT_URL);
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+            if (!response.ok) throw new Error(`Network response was not ok`);
             const data = await response.json();
             if (data.status === 'error') throw new Error(data.message);
-            this.state.allFlashcardSets = data;
-            this.renderSetSelectionScreen();
+            this.state.allFlashcardData = data;
+            this.renderSubjectSelectionScreen();
         } catch (error) {
-            this.DOM.setSelectionScreen.innerHTML = `<div class="text-center"><p class="text-red-500">Failed to load questions. Please refresh the page.</p></div>`;
-            console.error("Fetch Flashcard Error:", error);
+            this.DOM.subjectSelectionScreen.innerHTML = `<div class="text-center"><p class="text-red-500">Failed to load content. Please refresh the page.</p></div>`;
         }
     },
 
@@ -171,7 +169,6 @@ const app = {
         try {
             const url = `${this.CONFIG.APPS_SCRIPT_URL}?action=getScreenTime&name=${encodeURIComponent(this.state.userName)}`;
             const response = await fetch(url);
-            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
             const data = await response.json();
             if (data.status === 'success') {
                 this.state.currentScreenTime = data.minutes;
@@ -180,20 +177,17 @@ const app = {
         } catch (error) {
             this.updateScreenTimeUI(0);
             this.DOM.screenTimeText.textContent = 'Could not load time';
-            console.error("Fetch Screen Time Error:", error);
         }
     },
 
     sendDataToGoogle(payload) {
-        fetch(this.CONFIG.APPS_SCRIPT_URL, {
-            method: 'POST', mode: 'no-cors', cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        }).catch(err => console.error(`Error sending ${payload.payloadType}:`, err));
+        fetch(this.CONFIG.APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+        .catch(err => console.error(`Error sending ${payload.payloadType}:`, err));
     },
 
     // --- UI Rendering ---
     updateScreenTimeUI(minutes) {
-        const goal = 60;
+        const goal = 30;
         const percentage = Math.min(100, (minutes / goal) * 100);
         this.DOM.screenTimeText.textContent = `${minutes} min earned`;
         this.DOM.screenTimeBarFill.style.width = `${percentage}%`;
@@ -202,35 +196,44 @@ const app = {
         this.DOM.screenTimeInfo.innerHTML = `<strong>${greeting}arn 5 extra minutes</strong> for every quiz set you pass with >90%! Time resets every Sunday.`;
     },
 
-    renderSetSelectionScreen() {
-        const sets = Object.keys(this.state.allFlashcardSets);
+    renderSubjectSelectionScreen() {
+        const subjects = [...new Set(Object.values(this.state.allFlashcardData).map(set => set.subject))];
         let buttonsHTML = '';
-        if (sets.length === 0) {
-            buttonsHTML = '<p class="text-red-500">No question sets found in the database.</p>';
+        if (subjects.length === 0) {
+            buttonsHTML = '<p class="text-red-500">No subjects found in the database.</p>';
         } else {
-            buttonsHTML = sets.map(setName => {
-                const set = this.state.allFlashcardSets[setName];
-                if (set && Array.isArray(set) && set.length > 0) {
-                    return `<button onclick="app.startFlashcardSession('${setName}')" class="action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold">${setName}</button>`;
-                }
-                return '';
-            }).join('');
+            buttonsHTML = subjects.map(subject => 
+                `<button onclick="app.showSetSelection('${subject}')" class="action-button w-full py-4 px-6 bg-violet-500 hover:bg-violet-600 text-white rounded-lg font-semibold text-lg">${subject}</button>`
+            ).join('');
         }
-        this.DOM.setSelectionScreen.innerHTML = `
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Quiz Practice</h1>
-            <p class="text-slate-600 mb-8">Choose a topic set to master!</p>
+        this.DOM.subjectSelectionScreen.innerHTML = `
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Choose a Subject</h1>
+            <p class="text-slate-600 mb-8">Select a subject to practice.</p>
             <div class="grid grid-cols-1 gap-4">${buttonsHTML}</div>`;
+    },
+
+    renderSetSelectionScreen(subject) {
+        const setsForSubject = Object.entries(this.state.allFlashcardData).filter(([setName, data]) => data.subject === subject);
+        let buttonsHTML = setsForSubject.map(([setName, data]) => {
+            return `<button onclick="app.startFlashcardSession('${setName}')" class="action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold">${setName}</button>`;
+        }).join('');
+        
+        this.DOM.setSelectionScreen.innerHTML = `
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">${subject} Quizzes</h1>
+            <p class="text-slate-600 mb-8">Choose a topic set to master!</p>
+            <div class="grid grid-cols-1 gap-4">${buttonsHTML}</div>
+            <button onclick="app.showSubjectSelection()" class="action-button mt-6 bg-slate-500 hover:bg-slate-600 text-white w-full text-sm py-3 px-6 rounded-lg">Back to Subjects</button>`;
     },
 
     // --- Game Logic ---
     startFlashcardSession(setName) {
         Tone.start().catch(e => {});
-        const selectedSet = this.state.allFlashcardSets[setName];
+        const selectedSet = this.state.allFlashcardData[setName].questions;
         if (!Array.isArray(selectedSet) || selectedSet.length === 0) {
             alert(`Error: Cannot start quiz for "${setName}" because the data is invalid.`);
             return;
         }
-
+        
         let fullSetCopy = [...selectedSet];
         this.shuffleArray(fullSetCopy);
         this.state.currentSetData = fullSetCopy.slice(0, Math.min(fullSetCopy.length, this.CONFIG.QUESTIONS_PER_SET));
@@ -258,9 +261,9 @@ const app = {
 
         this.DOM.flashcardScreen.innerHTML = `
             <div class="mb-6"><div class="flex justify-between items-center mb-2"><span class="text-sm font-medium text-slate-600">Progress</span><span class="text-sm font-medium text-blue-700">${this.state.currentQuestionIndex} / ${totalQuestions}</span></div><div class="w-full bg-slate-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: ${progressPercentage}%"></div></div></div>
-            <div id="flashcard" class="bg-white border border-slate-300 rounded-lg p-6 mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300"><div class="w-full flex flex-col items-center justify-center"><div id="feedbackIcon" class="hidden text-7xl md:text-8xl mb-2"></div><p id="questionText" class="text-lg md:text-xl font-semibold text-slate-800">${questionData.question}</p><div id="feedbackText" class="mt-2 text-base md:text-lg font-semibold"></div><p id="continueText" class="hidden mt-4 text-sm text-slate-500">Tap card to continue...</p></div></div>
+            <div id="flashcard" class="bg-white border border-slate-300 rounded-lg p-6 mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300"><div class="w-full flex flex-col items-center justify-center"><p class="text-lg md:text-xl font-semibold text-slate-800">${questionData.question}</p></div></div>
             <div id="answerChoices" class="grid grid-cols-1 gap-3 md:gap-4">${choicesHTML}</div>
-            <button onclick="app.showSetSelection()" class="action-button mt-6 bg-slate-500 hover:bg-slate-600 text-white w-full text-sm py-3 px-6 rounded-lg">Back to Set Selection</button>`;
+            <button onclick="app.showSetSelection(app.state.allFlashcardData[app.state.currentSetName].subject)" class="action-button mt-6 bg-slate-500 hover:bg-slate-600 text-white w-full text-sm py-3 px-6 rounded-lg">Back to Set Selection</button>`;
     },
 
     checkAnswer(buttonEl, isCorrect) {
@@ -273,17 +276,17 @@ const app = {
             this.DOM.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             if (!this.state.isRedoing) this.state.score++;
             flashcardDiv.innerHTML = `<div class="text-white"><div class="text-7xl">✓</div><div class="text-lg font-semibold mt-2">Correct!</div><p class="text-sm mt-4">Tap card to continue...</p></div>`;
-            flashcardDiv.className = 'bg-green-500 p-6 rounded-lg mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300 cursor-pointer';
+            flashcardDiv.className += ' bg-green-500 text-white cursor-pointer';
             this.state.proceedTimeoutId = setTimeout(() => this.proceedToNext(), this.CONFIG.AUTO_PROCEED_DELAY);
             flashcardDiv.onclick = () => this.proceedToNext();
         } else {
             this.sounds.incorrect.triggerAttackRelease("C3", "8n");
             const userAnswer = buttonEl.textContent.trim();
             if (!this.state.isRedoing) this.state.incorrectAnswers.push({ questionData, userAnswer });
-            flashcardDiv.innerHTML = `<div class="text-white"><div class="text-7xl">✗</div><div class="text-base md:text-lg font-semibold mt-2"><div>Correct Answer: <span class="font-bold">${questionData.correctAnswer}</span></div><div class="explanation-box mt-2">${questionData.explanation || ''}</div><div class="prompt-guidance mt-3">Click the correct answer below to continue.</div></div></div>`;
-            flashcardDiv.className = 'bg-red-500 p-6 rounded-lg mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300 animate-shake';
+            flashcardDiv.innerHTML = `<div class="text-white"><div class="text-7xl">✗</div><div class="text-base md:text-lg font-semibold mt-2"><div>Correct Answer: <span class="font-bold">${questionData.correctAnswer}</span></div><div class="explanation-box mt-2 text-sm font-normal bg-white/20 p-2 rounded-md">${questionData.explanation || ''}</div><div class="prompt-guidance mt-3 text-sm font-normal">Click the correct answer below to continue.</div></div></div>`;
+            flashcardDiv.className += ' bg-red-500 text-white animate-shake';
             setTimeout(() => flashcardDiv.classList.remove('animate-shake'), 500);
-
+            
             document.querySelectorAll('.choice-button').forEach(btn => {
                 if (btn.textContent.trim() === questionData.correctAnswer) {
                     btn.className = 'choice-button action-button bg-green-500 hover:bg-green-600 text-white p-3 text-base md:text-lg rounded-lg min-h-[60px]';
@@ -301,7 +304,6 @@ const app = {
             clearTimeout(this.state.proceedTimeoutId);
             this.state.proceedTimeoutId = null;
         }
-        
         const flashcardDiv = document.getElementById('flashcard');
         if (flashcardDiv) flashcardDiv.onclick = null;
         
@@ -316,7 +318,7 @@ const app = {
 
     renderResultsScreen() {
         const totalQuestions = this.state.currentSetData.length;
-        const currentScore = this.state.isRedoing ? (totalQuestions - this.state.incorrectAnswers.length) : this.state.score;
+        const currentScore = this.state.score;
         const percentage = totalQuestions > 0 ? Math.round((currentScore / totalQuestions) * 100) : 0;
         
         let awardText = '';
@@ -345,11 +347,11 @@ const app = {
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button onclick="app.redoIncorrect()" class="action-button bg-orange-500 hover:bg-orange-600 text-white w-full py-3 px-6 rounded-lg ${this.state.incorrectAnswers.length === 0 || this.state.isRedoing ? 'hidden' : ''}">Redo Incorrect</button>
-                <button onclick="app.showSetSelection()" class="action-button bg-blue-500 hover:bg-blue-600 text-white w-full py-3 px-6 rounded-lg">Choose Another Set</button>
+                <button onclick="app.showSubjectSelection()" class="action-button bg-blue-500 hover:bg-blue-600 text-white w-full py-3 px-6 rounded-lg">Back to Subjects</button>
             </div>`;
 
         if (!this.state.isRedoing) {
-            this.sendDataToGoogle({ payloadType: 'flashcardResults', name: this.state.userName, setName: this.state.currentSetName, score: currentScore, totalQuestions, percentage, timeTaken: 0, incorrectAnswersJSON: JSON.stringify(this.state.incorrectAnswers.map(item => ({ q: item.questionData.question, u: item.userAnswer, c: item.questionData.correctAnswer }))) });
+            this.sendDataToGoogle({ payloadType: 'flashcardResults', name: this.state.userName, setName: this.state.currentSetName, score: currentScore, totalQuestions, percentage, timeTaken: 0, incorrectAnswersJSON: JSON.stringify(this.state.incorrectAnswers) });
         }
         this.showScreen(this.DOM.resultsScreen);
     },
@@ -366,7 +368,6 @@ const app = {
         this.renderFlashcardQuestion();
     },
 
-    // --- Utility ---
     shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -377,6 +378,7 @@ const app = {
 
 // Start the application once the DOM is ready
 document.addEventListener('DOMContentLoaded', () => app.init());
+
 </script>
 </body>
 </html>
