@@ -222,18 +222,38 @@
     
     function showSetSelection() { showScreen(setSelectionScreen); fetchAllData(); }
 
-    function startFlashcardSession(selectedSet, setName) {
+   // This is the NEW, CORRECTED code
+function startFlashcardSession(selectedSet, setName) {
+    try {
         Tone.start().catch(e => console.warn("Audio context could not start:", e));
+        
+        // The critical check: Ensure selectedSet is a valid array before proceeding.
+        if (!Array.isArray(selectedSet)) {
+            console.error("Error: The selected set is not a valid array.", selectedSet);
+            alert("Sorry, there was an error loading this quiz set. Please try a different one.");
+            return;
+        }
+
         let fullSetCopy = [...selectedSet];
         shuffleArray(fullSetCopy);
+        
         currentSetData = fullSetCopy.slice(0, Math.min(fullSetCopy.length, QUESTIONS_PER_SET)); 
         currentSetName = setName;
-        currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = false;
+        
+        currentQuestionIndex = 0; 
+        score = 0; 
+        incorrectAnswers = []; 
+        isRedoing = false;
+        
         showScreen(flashcardScreen);
         startTime = new Date();
         updateProgress(); 
         displayQuestion();
+    } catch (error) {
+        console.error("A critical error occurred in startFlashcardSession:", error);
+        alert("An unexpected error occurred while trying to start the quiz. Please refresh the page.");
     }
+}
 
     function displayQuestion() {
         resetCardState();
