@@ -45,7 +45,6 @@
 <body class="bg-gradient-to-br from-sky-200 via-blue-200 to-indigo-200 min-h-screen flex items-center justify-center p-4">
 
     <div id="appContainer" class="w-full max-w-md mx-auto">
-        <!-- Name Input Modal -->
         <div id="nameModal" class="modal">
             <div class="modal-content text-center">
                 <h2 class="text-xl md:text-2xl font-semibold mb-4 text-blue-700">Welcome, Math Whiz!</h2>
@@ -58,7 +57,6 @@
             </div>
         </div>
 
-        <!-- Persistent Header -->
         <header id="persistentHeader" class="hidden bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-md mb-4">
              <div class="flex justify-between items-center mb-2 text-sm">
                 <span class="font-semibold text-slate-700">This Week's Screen Time</span>
@@ -72,7 +70,6 @@
             <div id="screenTimeInfo" class="mt-2 text-xs text-slate-500 text-center"></div>
         </header>
 
-        <!-- Set Selection Screen -->
         <div id="setSelectionScreen" class="hidden bg-white p-6 md:p-8 rounded-xl shadow-lg text-center">
             <h1 class="text-2xl md:text-3xl font-bold text-blue-700 mb-2">PSLE Math Practice</h1>
             <p class="text-slate-600 mb-8">Choose a topic set to master!</p>
@@ -87,36 +84,24 @@
     <canvas id="confettiCanvas"></canvas>
 
    <script>
-    // --- Configuration ---
     const QUESTIONS_PER_SET = 15;
     const AUTO_PROCEED_DELAY = 1200;
-    const USER_NAME_STORAGE_KEY = 'psleMathApp_v5';
+    const USER_NAME_STORAGE_KEY = 'psleMathApp_v6';
     const REWARD_THRESHOLD_PERCENT = 90;
     const MINUTES_PER_REWARD = 5;
 
-    // --- IMPORTANT: Paste your /exec URL from your latest deployment ---
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfKOXXssyg_9G_UKiR-hU6lyl0BoDGS6eiSPDFN2gaVbWHECK1Gweye8FHEDVhOCxHkA/exec';
     
-    // --- State Variables ---
-    let allFlashcardSets = {};
-    let currentSetData = [];
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let incorrectAnswers = [];
-    let startTime, endTime;
-    let isRedoing = false;
-    let proceedTimeoutId = null;
-    let isWaitingToProceed = false;
-    let userName = '';
-    let currentScreenTime = 0;
+    let allFlashcardSets = {}, currentSetData = [], incorrectAnswers = [], score = 0, currentQuestionIndex = 0;
+    let startTime, endTime, proceedTimeoutId;
+    let isRedoing = false, isWaitingToProceed = false;
+    let userName = '', currentScreenTime = 0;
 
-    // --- Sound & Effects ---
     const correctSound = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.2 }, }).toDestination();
     const incorrectSound = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination();
     const confettiCanvas = document.getElementById('confettiCanvas');
     const myConfetti = confetti.create(confettiCanvas, { resize: true, useWorker: true });
 
-    // --- DOM Elements ---
     const persistentHeader = document.getElementById('persistentHeader');
     const nameModal = document.getElementById('nameModal');
     const userNameInput = document.getElementById('userNameInput');
@@ -151,31 +136,18 @@
     const screenTimeAwardText = document.getElementById('screenTimeAwardText');
     const screenTimeInfo = document.getElementById('screenTimeInfo');
     
-    // --- Event Listeners & Initialization ---
     flashcard.addEventListener('click', () => { if (isWaitingToProceed && flashcard.classList.contains('correct-state-static')) { proceedToNext(); } });
     userNameInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') { event.preventDefault(); saveUserName(); } });
     document.addEventListener('DOMContentLoaded', init);
 
-    // --- Data & UI Functions ---
-    function fetchAllData() {
-        fetchFlashcardData();
-        fetchScreenTime();
-    }
+    function fetchAllData() { fetchFlashcardData(); fetchScreenTime(); }
 
     function fetchFlashcardData() {
         loadingText.style.display = 'block';
         fetch(APPS_SCRIPT_URL)
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'error') throw new Error(data.message);
-                allFlashcardSets = data;
-                loadingText.style.display = 'none';
-                populateSetButtons();
-            })
-            .catch(error => {
-                loadingText.textContent = 'Failed to load questions. Please refresh.';
-                loadingText.style.color = 'red';
-            });
+            .then(data => { if (data.status === 'error') throw new Error(data.message); allFlashcardSets = data; loadingText.style.display = 'none'; populateSetButtons(); })
+            .catch(error => { loadingText.textContent = 'Failed to load questions. Please refresh.'; loadingText.style.color = 'red'; });
     }
 
     function fetchScreenTime() {
@@ -183,12 +155,7 @@
         const url = `${APPS_SCRIPT_URL}?action=getScreenTime&name=${encodeURIComponent(userName)}`;
         fetch(url)
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    currentScreenTime = data.minutes;
-                    updateScreenTimeUI(currentScreenTime);
-                } else { throw new Error(data.message); }
-            })
+            .then(data => { if (data.status === 'success') { currentScreenTime = data.minutes; updateScreenTimeUI(currentScreenTime); } else { throw new Error(data.message); } })
             .catch(error => { updateScreenTimeUI(0); screenTimeText.textContent = 'Could not load time'; });
     }
     
@@ -214,17 +181,10 @@
         if (screen) screen.classList.remove('hidden');
     }
 
-    // --- Core Application Logic ---
     function init() {
         userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
-        if (userName) {
-            persistentHeader.classList.remove('hidden');
-            showSetSelection();
-        } else {
-            persistentHeader.classList.add('hidden');
-            nameModal.style.display = 'flex';
-            userNameInput.focus();
-        }
+        if (userName) { persistentHeader.classList.remove('hidden'); showSetSelection(); } 
+        else { persistentHeader.classList.add('hidden'); nameModal.style.display = 'flex'; userNameInput.focus(); }
     }
 
     function saveUserName() {
@@ -237,10 +197,7 @@
         showSetSelection();
     }
     
-    function showSetSelection() {
-        showScreen(setSelectionScreen);
-        fetchAllData();
-    }
+    function showSetSelection() { showScreen(setSelectionScreen); fetchAllData(); }
 
     function populateSetButtons() {
         setButtonsContainer.innerHTML = '';
@@ -355,7 +312,6 @@
         }
     }
 
-    // THIS FUNCTION IS NOW FIXED AND SIMPLIFIED
     function proceedToNext() {
         if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
         isWaitingToProceed = false;
@@ -405,9 +361,8 @@
     
     function redoIncorrect() {
         if (incorrectAnswers.length === 0) return;
-        const originalSetName = currentSetData.setName.replace(" (Redo)", "");
         currentSetData = incorrectAnswers.map(item => item.questionData);
-        currentSetData.setName = `${originalSetName} (Redo)`;
+        currentSetData.setName = `${currentSetData[0].setName || "Unknown"} (Redo)`;
         currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = true;
         showScreen(flashcardScreen);
         startTime = new Date();
