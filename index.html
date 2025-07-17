@@ -312,7 +312,7 @@ function generateChoiceButtons(options, correctAnswer) {
 }
 
 // ===================================================================================
-//  MODULE: CORE APPLICATION LOGIC (Targeted Fix 1)
+//  MODULE: CORE APPLICATION LOGIC (Targeted Fix)
 // ===================================================================================
 function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
     // This is the NEW checkAnswer function
@@ -326,6 +326,7 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
     const questionTextDiv = document.getElementById('questionText');
     const feedbackIconDiv = document.getElementById('feedbackIcon');
     const feedbackTextDiv = document.getElementById('feedbackText');
+    const continueTextDiv = document.getElementById('continueText');
     
     questionTextDiv.style.display = 'none';
     feedbackIconDiv.style.display = 'block';
@@ -335,19 +336,17 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
         DOM.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         if (!state.isRedoing) state.score++;
 
-        flashcardDiv.className = 'bg-green-500 text-white p-6 rounded-lg mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300 cursor-pointer'; // Added cursor-pointer
+        flashcardDiv.className = 'bg-green-500 text-white p-6 rounded-lg mb-6 text-center min-h-[200px] flex flex-col items-center justify-center transition-colors duration-300 cursor-pointer';
         feedbackIconDiv.innerHTML = '✓';
         feedbackTextDiv.textContent = 'Correct!';
-        document.getElementById('continueText').style.display = 'block';
+        continueTextDiv.style.display = 'block';
         
-        // Setup a single click listener that will clear the timer
-        flashcardDiv.onclick = () => {
-            if(proceedTimeoutId) clearTimeout(proceedTimeoutId); // Clear the auto-advance timer
-            proceedToNext();
-        };
-        
-        // Set the auto-advance timer
+        // Set the timer to automatically advance
         proceedTimeoutId = setTimeout(proceedToNext, CONFIG.AUTO_PROCEED_DELAY);
+        
+        // Set a click listener. When clicked, it will call proceedToNext.
+        // proceedToNext itself is now responsible for clearing the timer.
+        flashcardDiv.onclick = proceedToNext;
 
     } else {
         sounds.incorrect.triggerAttackRelease("C3", "8n");
@@ -363,14 +362,16 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
             <div class="prompt-guidance mt-3">Click the correct answer below to continue.</div>
         `;
         
-        // When an answer is wrong, the card is not clickable
+        // When an answer is wrong, the card should not be clickable to auto-advance
         flashcardDiv.onclick = null; 
 
         document.querySelectorAll('.choice-button').forEach(btn => {
-            if (atob(btn.getAttribute('onclick').split(',')[1].slice(2, -2)) === correctAnswer) {
+            // Decode the base64 from the onclick attribute to compare
+            const btnAnswer = atob(btn.getAttribute('onclick').split(',')[1].slice(2, -2));
+            if (btnAnswer === correctAnswer) {
                 btn.className = 'choice-button action-button bg-green-500 hover:bg-green-600 text-white p-3 text-base md:text-lg rounded-lg min-h-[60px]';
                 btn.disabled = false;
-                btn.onclick = proceedToNext; // Corrected: directly call proceedToNext
+                btn.onclick = proceedToNext;
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -379,34 +380,22 @@ function checkAnswer(buttonEl, selectedAnswerB64, correctAnswerB64) {
 }
 
 // ===================================================================================
-//  MODULE: CORE APPLICATION LOGIC (Targeted Fix 2)
+//  MODULE: CORE APPLICATION LOGIC (Targeted Fix)
 // ===================================================================================
 function proceedToNext() {
-    // This is the NEW proceedToNext function
+    // If there's a pending timer, clear it. This prevents the auto-advance from firing if the user has already clicked.
     if (proceedTimeoutId) {
-        clearTimeout(proceedTimeoutId); // Clear any pending timer
-        proceedTimeoutId = null; // Reset the timer ID
+        clearTimeout(proceedTimeoutId);
+        proceedTimeoutId = null; // Good practice to nullify the ID after clearing
     }
-
-    // Prevent multiple rapid calls
+    
+    // To prevent double-calls, immediately remove the click handler from the card.
     const flashcardDiv = document.getElementById('flashcard');
     if (flashcardDiv) {
-        flashcardDiv.onclick = null; 
+        flashcardDiv.onclick = null;
     }
 
     state.currentQuestionIndex++;
-    renderFlashcardScreen();
-}
-
-function redoIncorrect() {
-    if (state.incorrectAnswers.length === 0) return;
-    state.currentSetData = state.incorrectAnswers.map(item => item.questionData);
-    state.currentSetName = `${state.currentSetName} (Redo)`;
-    state.currentQuestionIndex = 0;
-    state.score = 0;
-    state.incorrectAnswers = [];
-    state.isRedoing = true;
-    showScreen(DOM.flashcardScreen);
     renderFlashcardScreen();
 }
 </script>
