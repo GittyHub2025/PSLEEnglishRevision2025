@@ -173,22 +173,31 @@
         screenTimeInfo.innerHTML = `<strong>${greeting}arn 5 extra minutes</strong> for every quiz set you pass with >90%! Time resets every Sunday.`;
     }
 
-    function populateSetButtons() {
-        setButtonsContainer.innerHTML = '';
-        if (Object.keys(allFlashcardSets).length === 0 && loadingText.style.display === 'none') {
-             setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found.</p>'; return;
-        }
-        Object.keys(allFlashcardSets).forEach(setName => {
-            const set = allFlashcardSets[setName];
-            if (set && Array.isArray(set) && set.length > 0) { 
-                const button = document.createElement('button');
-                button.textContent = `Start ${setName}`;
-                button.className = 'action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white mb-3 last:mb-0'; 
-                button.onclick = () => startFlashcardSession(set, setName);
-                setButtonsContainer.appendChild(button);
-            }
-        });
+    // NEW populateSetButtons function with a debugger log
+function populateSetButtons() {
+    setButtonsContainer.innerHTML = '';
+    if (Object.keys(allFlashcardSets).length === 0 && loadingText.style.display === 'none') {
+         setButtonsContainer.innerHTML = '<p class="text-red-500">No question sets found.</p>'; 
+         return;
     }
+    Object.keys(allFlashcardSets).forEach(setName => {
+        const set = allFlashcardSets[setName];
+        
+        // --- ERROR TRACKING STEP 1: Log the data for each button ---
+        console.log(`Creating button for set: "${setName}". Data is:`, set);
+
+        if (set && Array.isArray(set) && set.length > 0) { 
+            const button = document.createElement('button');
+            button.textContent = `Start ${setName}`;
+            button.className = 'action-button w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white mb-3 last:mb-0'; 
+            button.onclick = () => startFlashcardSession(set, setName);
+            setButtonsContainer.appendChild(button);
+        } else {
+            // This else block helps us see if a set was found but had invalid data
+            console.warn(`Skipping button for "${setName}" because its data is not a valid array or is empty.`);
+        }
+    });
+}
 
     function resetCardState() {
         if (proceedTimeoutId) clearTimeout(proceedTimeoutId);
@@ -222,18 +231,19 @@
     
     function showSetSelection() { showScreen(setSelectionScreen); fetchAllData(); }
 
-   // This is the NEW, CORRECTED code
+  // NEW startFlashcardSession function with robust error checking
 function startFlashcardSession(selectedSet, setName) {
+    // --- ERROR TRACKING STEP 2: The most important check ---
+    if (!selectedSet || !Array.isArray(selectedSet) || selectedSet.length === 0) {
+        console.error('CRITICAL ERROR: startFlashcardSession was called with invalid data for set:', setName);
+        console.error('Data received:', selectedSet);
+        alert(`Error: Could not load the quiz for "${setName}". The data is missing or invalid. Please check the console for more details.`);
+        return; // Stop the function from running further
+    }
+
     try {
         Tone.start().catch(e => console.warn("Audio context could not start:", e));
         
-        // The critical check: Ensure selectedSet is a valid array before proceeding.
-        if (!Array.isArray(selectedSet)) {
-            console.error("Error: The selected set is not a valid array.", selectedSet);
-            alert("Sorry, there was an error loading this quiz set. Please try a different one.");
-            return;
-        }
-
         let fullSetCopy = [...selectedSet];
         shuffleArray(fullSetCopy);
         
@@ -250,8 +260,8 @@ function startFlashcardSession(selectedSet, setName) {
         updateProgress(); 
         displayQuestion();
     } catch (error) {
-        console.error("A critical error occurred in startFlashcardSession:", error);
-        alert("An unexpected error occurred while trying to start the quiz. Please refresh the page.");
+        console.error(`A critical error occurred while starting the quiz for "${setName}":`, error);
+        alert("An unexpected error occurred. Please refresh the page and try again.");
     }
 }
 
