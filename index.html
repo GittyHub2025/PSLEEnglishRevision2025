@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PSLE Math Practice</title>
+    <title>PSLE Practice App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
@@ -145,11 +145,11 @@
     // ===================================================================================
     const QUESTIONS_PER_SET = 15;
     const AUTO_PROCEED_DELAY = 1200;
-    const USER_NAME_STORAGE_KEY = 'psleApp_v7'; // Updated version for fresh start
+    const USER_NAME_STORAGE_KEY = 'psleApp_v8'; // Updated version
     const REWARD_THRESHOLD_PERCENT = 90;
     const MINUTES_PER_REWARD = 5;
 
-    // This URL is provided by you and hardcoded here for simplicity.
+    // YOUR SCRIPT URL IS NOW EMBEDDED HERE
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfKOXXssyg_9G_UKiR-hU6lyl0BoDGS6eiSPDFN2gaVbWHECK1Gweye8FHEDVhOCxHkA/exec';
     
     // ===================================================================================
@@ -157,15 +157,13 @@
     // ===================================================================================
     let allFlashcardSets = {};
     let currentSetData = [];
-    let currentSetName = ''; // FIX: Dedicated variable for the current set's name
+    let currentSetName = ''; // Dedicated variable for the current set's name
     let incorrectAnswers = [];
     let score = 0;
     let currentQuestionIndex = 0;
     let startTime, endTime, proceedTimeoutId;
-    let isRedoing = false;
-    let isWaitingToProceed = false;
-    let userName = '';
-    let currentScreenTime = 0;
+    let isRedoing = false, isWaitingToProceed = false;
+    let userName = '', currentScreenTime = 0;
 
     // ===================================================================================
     //  MODULE: SOUND & EFFECTS
@@ -222,25 +220,14 @@
     // ===================================================================================
     //  MODULE: DATA FETCHING & API INTERACTION
     // ===================================================================================
-    function fetchAllData() {
-        fetchFlashcardData();
-        fetchScreenTime();
-    }
+    function fetchAllData() { fetchFlashcardData(); fetchScreenTime(); }
 
     function fetchFlashcardData() {
         loadingText.style.display = 'block';
         fetch(APPS_SCRIPT_URL)
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'error') throw new Error(data.message);
-                allFlashcardSets = data;
-                loadingText.style.display = 'none';
-                populateSetButtons();
-            })
-            .catch(error => {
-                loadingText.textContent = 'Failed to load questions. Please refresh.';
-                loadingText.style.color = 'red';
-            });
+            .then(data => { if (data.status === 'error') throw new Error(data.message); allFlashcardSets = data; loadingText.style.display = 'none'; populateSetButtons(); })
+            .catch(error => { loadingText.textContent = 'Failed to load questions. Please refresh.'; loadingText.style.color = 'red'; });
     }
 
     function fetchScreenTime() {
@@ -248,15 +235,10 @@
         const url = `${APPS_SCRIPT_URL}?action=getScreenTime&name=${encodeURIComponent(userName)}`;
         fetch(url)
             .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    currentScreenTime = data.minutes;
-                    updateScreenTimeUI(currentScreenTime);
-                } else { throw new Error(data.message); }
-            })
+            .then(data => { if (data.status === 'success') { currentScreenTime = data.minutes; updateScreenTimeUI(currentScreenTime); } else { throw new Error(data.message); } })
             .catch(error => { updateScreenTimeUI(0); screenTimeText.textContent = 'Could not load time'; });
     }
-
+    
     function sendDataToGoogle(payload) {
         fetch(APPS_SCRIPT_URL, {
             method: 'POST', mode: 'no-cors', cache: 'no-cache',
@@ -318,14 +300,8 @@
     // ===================================================================================
     function init() {
         userName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
-        if (userName) {
-            persistentHeader.classList.remove('hidden');
-            showSetSelection();
-        } else {
-            persistentHeader.classList.add('hidden');
-            nameModal.style.display = 'flex';
-            userNameInput.focus();
-        }
+        if (userName) { persistentHeader.classList.remove('hidden'); showSetSelection(); } 
+        else { persistentHeader.classList.add('hidden'); nameModal.style.display = 'flex'; userNameInput.focus(); }
     }
 
     function saveUserName() {
@@ -338,25 +314,15 @@
         showSetSelection();
     }
     
-    function showSetSelection() {
-        showScreen(setSelectionScreen);
-        fetchAllData();
-    }
+    function showSetSelection() { showScreen(setSelectionScreen); fetchAllData(); }
 
     function startFlashcardSession(selectedSet, setName) {
         Tone.start().catch(e => console.warn("Audio context could not start:", e));
         let fullSetCopy = [...selectedSet];
         shuffleArray(fullSetCopy);
         currentSetData = fullSetCopy.slice(0, Math.min(fullSetCopy.length, QUESTIONS_PER_SET)); 
-        
-        // FIX: Use the dedicated state variable instead of trying to add a property to an array.
-        currentSetName = setName; 
-        
-        currentQuestionIndex = 0;
-        score = 0;
-        incorrectAnswers = [];
-        isRedoing = false;
-
+        currentSetName = setName;
+        currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = false;
         showScreen(flashcardScreen);
         startTime = new Date();
         updateProgress(); 
@@ -447,10 +413,7 @@
         const currentScore = isRedoing ? (totalQuestions - incorrectAnswers.length) : score;
         const percentage = totalQuestions > 0 ? Math.round((currentScore / totalQuestions) * 100) : 0;
         showScreen(resultsScreen);
-        
-        // FIX: Use the dedicated state variable
         resultsHeadingEl.textContent = isRedoing ? 'Review Complete!' : `${currentSetName || 'Session'} Complete!`;
-        
         scoreDisplayEl.textContent = `${currentScore} / ${totalQuestions}`;
         percentageEl.textContent = `${percentage}`;
         timeTakenEl.textContent = `${timeDiff}s`;
@@ -465,9 +428,7 @@
         if (percentage === 100) encouragementTextEl.textContent = "Perfect score! You're a master!";
         else if (percentage >= 70) encouragementTextEl.textContent = "Excellent work! Your understanding is strong.";
         else encouragementTextEl.textContent = "Good job! Review the incorrect answers to strengthen your knowledge.";
-        
         requestAnimationFrame(() => { setTimeout(() => { const trackWidth = raceTrackContainer.offsetWidth; const effectiveTrackWidth = trackWidth - rocketEl.offsetWidth; const finalRocketPosition = Math.max(0, (percentage / 100) * effectiveTrackWidth); rocketEl.style.left = `${finalRocketPosition}px`; raceTrackFillEl.style.width = `${finalRocketPosition}px`; }, 100); });
-        
         incorrectList.innerHTML = '';
         if (incorrectAnswers.length > 0) {
             incorrectListContainer.classList.remove('hidden'); noIncorrectText.classList.add('hidden');
@@ -477,7 +438,6 @@
             incorrectListContainer.classList.add('hidden'); noIncorrectText.classList.remove('hidden');
             redoIncorrectButton.classList.add('hidden');
         }
-
         if (!isRedoing) {
             sendDataToGoogle({ payloadType: 'flashcardResults', name: userName, setName: currentSetName, score: currentScore, totalQuestions, percentage, timeTaken: timeDiff, incorrectAnswersJSON: JSON.stringify(incorrectAnswers.map(item => ({ q: item.questionData.question, u: item.userAnswer, c: item.questionData.correctAnswer }))) });
         } else {
@@ -488,10 +448,7 @@
     function redoIncorrect() {
         if (incorrectAnswers.length === 0) return;
         currentSetData = incorrectAnswers.map(item => item.questionData);
-        
-        // FIX: Use the dedicated state variable
         currentSetName = `${currentSetName} (Redo)`;
-        
         currentQuestionIndex = 0; score = 0; incorrectAnswers = []; isRedoing = true;
         showScreen(flashcardScreen);
         startTime = new Date();
