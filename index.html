@@ -193,7 +193,7 @@ const app = {
 
     // --- UI Rendering ---
     updateScreenTimeUI(minutes) {
-        const goal = 30;
+        const goal = 60;
         const percentage = Math.min(100, (minutes / goal) * 100);
         this.DOM.screenTimeText.textContent = `${minutes} min earned`;
         this.DOM.screenTimeBarFill.style.width = `${percentage}%`;
